@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INTEGRA — an interactive laboratory for integral calculus</title>
+<meta name="description" content="Construct, visualise and experimentally investigate integration. Symbolic antiderivatives, eight numerical methods, convergence measurement, and a laboratory for finding the functions that break them.">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='14' font-family='Georgia,serif'>∫</text></svg>">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">
+    <span class="sigil">∫</span>
+    <div class="brand-text">
+      <strong>INTEGRA</strong>
+      <small>an interactive laboratory for integral calculus</small>
+    </div>
+  </div>
+
+  <form id="entry" class="entry" autocomplete="off">
+    <label class="field field-f">
+      <span class="field-label">f(x)</span>
+      <input id="fn" type="text" value="e^(-x^2)" spellcheck="false" aria-label="the function to integrate">
+    </label>
+    <label class="field field-b">
+      <span class="field-label">from</span>
+      <input id="lo" type="text" value="-2" spellcheck="false" aria-label="lower limit">
+    </label>
+    <label class="field field-b">
+      <span class="field-label">to</span>
+      <input id="hi" type="text" value="2" spellcheck="false" aria-label="upper limit">
+    </label>
+    <button id="go" class="primary" type="submit">Integrate</button>
+  </form>
+
+  <div class="masthead-tools">
+    <button id="theme" class="icon-button" title="Switch between light and dark" aria-label="Switch theme">◐</button>
+  </div>
+</header>
+
+<p id="parse-error" class="parse-error" hidden></p>
+
+<div class="shell">
+
+  <nav class="rail" aria-label="Laboratories">
+    <button class="rail-item active" data-mode="lab">
+      <span class="rail-glyph">∫</span><span class="rail-name">Integral</span>
+    </button>
+    <button class="rail-item" data-mode="riemann">
+      <span class="rail-glyph">▤</span><span class="rail-name">Riemann</span>
+    </button>
+    <button class="rail-item" data-mode="convergence">
+      <span class="rail-glyph">◿</span><span class="rail-name">Convergence</span>
+    </button>
+    <button class="rail-item" data-mode="compare">
+      <span class="rail-glyph">≡</span><span class="rail-name">Compare</span>
+    </button>
+    <button class="rail-item" data-mode="monte">
+      <span class="rail-glyph">⁙</span><span class="rail-name">Monte Carlo</span>
+    </button>
+    <button class="rail-item" data-mode="improper">
+      <span class="rail-glyph">∞</span><span class="rail-name">Improper</span>
+    </button>
+    <button class="rail-item" data-mode="break">
+      <span class="rail-glyph">⚡</span><span class="rail-name">Break it</span>
+    </button>
+    <button class="rail-item" data-mode="working">
+      <span class="rail-glyph">∂</span><span class="rail-name">Working</span>
+    </button>
+    <div class="rail-spacer"></div>
+    <button class="rail-item" data-mode="library">
+      <span class="rail-glyph">☰</span><span class="rail-name">Library</span>
+    </button>
+  </nav>
+
+  <main class="stage">
+
+    <!-- ── the main integral ───────────────────────────────────────────── -->
+    <section class="pane active" data-mode="lab">
+      <div class="pane-body split">
+        <div class="graph-wrap">
+          <div class="plot-host"><canvas id="main-plot"></canvas></div>
+          <div class="plot-caption" id="main-caption"></div>
+        </div>
+        <aside class="results" id="lab-results"></aside>
+      </div>
+    </section>
+
+    <!-- ── Riemann laboratory ──────────────────────────────────────────── -->
+    <section class="pane" data-mode="riemann">
+      <div class="pane-body split">
+        <div class="graph-wrap">
+          <div class="plot-host"><canvas id="riemann-plot"></canvas></div>
+          <div class="control-strip">
+            <div class="method-chips" id="riemann-methods" role="group" aria-label="Riemann method"></div>
+            <label class="slider-field">
+              <span class="slider-label">intervals</span>
+              <input id="riemann-n" type="range" min="1" max="500" value="12" aria-label="number of intervals">
+              <output id="riemann-n-out" class="slider-value">N = 12</output>
+            </label>
+            <button id="riemann-animate" class="ghost" title="Sweep N upwards and watch the approximation settle">▶ Animate</button>
+          </div>
+        </div>
+        <aside class="results" id="riemann-results"></aside>
+      </div>
+    </section>
+
+    <!-- ── convergence ─────────────────────────────────────────────────── -->
+    <section class="pane" data-mode="convergence">
+      <div class="pane-body split">
+        <div class="graph-wrap">
+          <div class="plot-host"><canvas id="conv-plot"></canvas></div>
+          <div class="plot-caption">Error against the number of intervals, on logarithmic axes. A method of order <em>p</em> shows as a straight line of slope −<em>p</em>; the measured slope is the rate the method is actually achieving on <em>this</em> integrand.</div>
+        </div>
+        <aside class="results" id="conv-results"></aside>
+      </div>
+    </section>
+
+    <!-- ── method comparison ───────────────────────────────────────────── -->
+    <section class="pane" data-mode="compare">
+      <div class="pane-body">
+        <div class="control-strip">
+          <label class="slider-field">
+            <span class="slider-label">budget</span>
+            <input id="compare-budget" type="range" min="4" max="500" value="100" aria-label="function evaluations">
+            <output id="compare-budget-out" class="slider-value">≈100 evaluations</output>
+          </label>
+          <span class="hint">Every method is given the same number of function evaluations, which is the only comparison that means anything.</span>
+        </div>
+        <div class="scroll-body" id="compare-results"></div>
+      </div>
+    </section>
+
+    <!-- ── Monte Carlo ─────────────────────────────────────────────────── -->
+    <section class="pane" data-mode="monte">
+      <div class="pane-body split">
+        <div class="graph-wrap">
+          <div class="plot-host"><canvas id="monte-plot"></canvas></div>
+          <div class="control-strip">
+            <label class="slider-field">
+              <span class="slider-label">samples</span>
+              <input id="monte-n" type="range" min="1" max="60" value="20" aria-label="number of samples">
+              <output id="monte-n-out" class="slider-value">N = 1,000</output>
+            </label>
+            <button id="monte-reseed" class="ghost" title="Draw a fresh set of random samples">↻ New sample</button>
+          </div>
+        </div>
+        <aside class="results" id="monte-results"></aside>
+      </div>
+    </section>
+
+    <!-- ── improper integrals ──────────────────────────────────────────── -->
+    <section class="pane" data-mode="improper">
+      <div class="pane-body split">
+        <div class="graph-wrap">
+          <div class="plot-host"><canvas id="improper-plot"></canvas></div>
+          <div class="plot-caption">The partial integrals, as the cut-off moves towards the improper end. This is the limit in the definition, drawn — the number is only its destination.</div>
+        </div>
+        <aside class="results" id="improper-results"></aside>
+      </div>
+    </section>
+
+    <!-- ── break the method ────────────────────────────────────────────── -->
+    <section class="pane" data-mode="break">
+      <div class="pane-body split">
+        <div class="graph-wrap">
+          <div class="plot-host"><canvas id="break-plot"></canvas></div>
+          <div class="control-strip">
+            <label class="select-field">
+              <span class="slider-label">family</span>
+              <select id="break-family" aria-label="function family"></select>
+            </label>
+            <label class="slider-field">
+              <span class="slider-label">budget</span>
+              <input id="break-budget" type="range" min="10" max="400" value="120" aria-label="function evaluations">
+              <output id="break-budget-out" class="slider-value">≈120 evaluations</output>
+            </label>
+          </div>
+        </div>
+        <aside class="results" id="break-results"></aside>
+      </div>
+    </section>
+
+    <!-- ── show the mathematics ────────────────────────────────────────── -->
+    <section class="pane" data-mode="working">
+      <div class="pane-body">
+        <div class="scroll-body" id="working-results"></div>
+      </div>
+    </section>
+
+    <!-- ── library ─────────────────────────────────────────────────────── -->
+    <section class="pane" data-mode="library">
+      <div class="pane-body">
+        <div class="scroll-body" id="library"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="busy" class="busy" hidden><span class="spinner"></span><span id="busy-text">working</span></div>
+
+<script type="module" src="src/ui/app.js"></script>
+</body>
+</html>
