@@ -186,4 +186,4 @@ Notation is real MathML generated from the same tree the engine computes with. N
 
 Set in Iowan Old Style, on cream.
 
-*Kunaal Khanwani, August 2026. MIT licensed.*
+*Kunaal Nirmal Khanwani, August 2026. MIT licensed.*
