@@ -1,21 +1,23 @@
-/**
- * improper.js — integrals over an infinite interval, and integrals of an
- * unbounded function.
- *
- * An improper integral is a limit, not a sum:
- *
- *     ∫₁^∞ f dx = lim_{R→∞} ∫₁^R f dx        ∫₀¹ f dx = lim_{ε→0⁺} ∫_ε¹ f dx
- *
- * so the honest way to display one is to *show the limit being approached* —
- * the partial integrals as the cut-off moves — rather than to print a number
- * and call it done. That is what `approachSequence` is for, and it is the only
- * presentation that makes convergence and divergence look different on screen.
- *
- * For the value itself, an infinite range is mapped to a finite one and handed
- * to tanh-sinh quadrature. The substitutions are exact changes of variable, not
- * truncations: nothing is thrown away at a "large enough" cut-off, which is the
- * approximation that quietly loses the tail of a slowly decaying integrand.
- */
+/*
+  improper.js: integrals over an infinite interval, and integrals of an
+  ..................................................................
+
+  unbounded function.
+
+  An improper integral is a limit, not a sum:
+
+      ∫₁^∞ f dx = lim_{R→∞} ∫₁^R f dx        ∫₀¹ f dx = lim_{ε→0⁺} ∫_ε¹ f dx
+
+  so the honest way to display one is to *show the limit being approached*:
+  the partial integrals as the cut-off moves: rather than to print a number
+  and call it done. That is what `approachSequence` is for, and it is the only
+  presentation that makes convergence and divergence look different on screen.
+
+  For the value itself, an infinite range is mapped to a finite one and handed
+  to tanh-sinh quadrature. The substitutions are exact changes of variable, not
+  truncations: nothing is thrown away at a "large enough" cut-off, which is the
+  approximation that quietly loses the tail of a slowly decaying integrand.
+*/
 
 import { tanhSinh, adaptiveSimpson } from './advanced.js';
 
@@ -51,7 +53,7 @@ export function classify(f, a, b) {
  *   (−∞, ∞)    x = t/(1 − t²),     t ∈ (−1, 1), dx = (1 + t²)/(1 − t²)² dt
  *
  * Each maps the infinite end to an endpoint of a finite interval, where the
- * transformed integrand generally blows up — and tanh-sinh, which never samples
+ * transformed integrand generally blows up, and tanh-sinh, which never samples
  * its endpoints, does not care.
  */
 /**
@@ -103,7 +105,7 @@ export function gradedIntegral(f, lo, hi, tol = 1e-13) {
  *
  *   · Tanh-sinh is unbeatable at an *endpoint* singularity, because it never
  *     samples the endpoints. But its nodes are sparsest in the middle of the
- *     interval, so an interior kink is exactly what it under-resolves — it
+ *     interval, so an interior kink is exactly what it under-resolves; it
  *     returns 0.9848 for ∫₋₁¹|x|dx, which is 1.
  *
  *   · Adaptive Simpson subdivides wherever its error estimate demands, so an
@@ -113,7 +115,7 @@ export function gradedIntegral(f, lo, hi, tol = 1e-13) {
  * So: run both, and let their agreement decide. When they agree the integrand
  * is smooth and tanh-sinh's answer is the more accurate one. When they disagree
  * the difficulty is interior — tanh-sinh's blind spot and adaptive Simpson's
- * speciality — so the adaptive answer wins. When adaptive cannot sample at all,
+ * speciality, so the adaptive answer wins. When adaptive cannot sample at all,
  * the difficulty is at an endpoint and tanh-sinh is the only one left standing.
  *
  * The disagreement itself is returned, because two good methods disagreeing is
@@ -153,7 +155,7 @@ export function finiteIntegral(f, a, b, tol = 1e-13) {
     method: 'adaptive Simpson',
     crossCheck: { other: ts.value, disagreement, agreed: false },
     reason: `Tanh-sinh and adaptive Simpson disagree by ${disagreement.toExponential(2)} relative. `
-      + 'That pattern means the difficulty is inside the interval rather than at an endpoint — a kink or a spike, '
+      + 'That pattern means the difficulty is inside the interval rather than at an endpoint: a kink or a spike, '
       + 'which tanh-sinh under-samples because its nodes crowd towards the ends. The adaptive result is reported.',
   };
 }
@@ -173,7 +175,7 @@ export function improper(f, a, b, options = {}) {
    * transformed integrand grows like (1 − t)^(−(2−p)) with an extra factor from
    * the Jacobian, and for a heavy tail such as x^(−1.1) it converges so slowly
    * that the quadrature runs out of levels two per cent short of the answer.
-   * Same integral, same method, entirely different accuracy — chosen by the
+   * Same integral, same method, entirely different accuracy: chosen by the
    * substitution.
    */
   const tailFrom = (c) => tanhSinh((u) => (u === 0 ? NaN : f(1 / u) / (u * u)), 0, 1 / c, tol);
@@ -232,7 +234,7 @@ const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toPrecision(4));
  *
  * This is the *definition* rendered as data. Each entry is ∫ over a truncated
  * interval, and watching the column either settle or run away is the whole
- * distinction between convergent and divergent — which is a far better answer
+ * distinction between convergent and divergent, which is a far better answer
  * than the string "∞".
  *
  * @param {'upper'|'lower'|'both'} which  which end is improper
@@ -242,7 +244,7 @@ export function approachSequence(f, a, b, which = 'upper', steps = 14) {
 
   // Doubly infinite: move both cut-offs together, which is the symmetric
   // (principal-value) approach. Worth naming, because it is not the same limit
-  // as letting the two ends run away independently — ∫x dx over (−∞, ∞) has a
+  // as letting the two ends run away independently: ∫x dx over (−∞, ∞) has a
   // symmetric limit of 0 and no limit at all in the general sense.
   if (a === -Infinity && b === Infinity) {
     let R = 4;
@@ -295,7 +297,7 @@ export function approachSequence(f, a, b, which = 'upper', steps = 14) {
  * anything: ∫₁^R dx/x grows like ln R, which over any four consecutive
  * quadruplings looks almost flat. So the verdict is deliberately labelled as an
  * observation, the reasoning is returned alongside it, and the interface prints
- * both. Nothing here is allowed to say "this integral converges" — only "the
+ * both. Nothing here is allowed to say "this integral converges": only "the
  * partial integrals are behaving as though it does".
  */
 export function diagnose(sequence) {
@@ -325,7 +327,7 @@ export function diagnose(sequence) {
   if (tail.length < 3) {
     return {
       verdict: 'appears convergent', confidence: 'strong', limit: last,
-      reason: 'The partial integrals stopped changing at the working precision — the remaining differences are '
+      reason: 'The partial integrals stopped changing at the working precision; the remaining differences are '
         + 'rounding noise, not the tail of the integral. That is evidence of convergence, not a proof of it.',
     };
   }
@@ -383,7 +385,7 @@ export function diagnose(sequence) {
       verdict: 'appears convergent', confidence: relative < 1e-4 ? 'strong' : 'moderate',
       reason: `The increments are shrinking geometrically, in a ratio of about ${meanRatio.toFixed(3)} per step, and the `
         + `last one was ${relative.toExponential(1)} of the value itself. Increments in a fixed ratio below 1 sum to `
-        + 'something finite — that is the ratio test. The evidence is that the ratio observed here is the eventual one, '
+        + 'something finite: that is the ratio test. The evidence is that the ratio observed here is the eventual one, '
         + 'which no finite window of partial integrals can establish.',
       meanRatio,
     };

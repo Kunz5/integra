@@ -1,24 +1,25 @@
-/**
- * montecarlo.js — integration by random sampling.
- *
- * Monte Carlo is the worst method here on a smooth one-dimensional integral and
- * the only practical one in high dimensions, and understanding why is worth
- * more than either fact alone.
- *
- * Its error falls as 1/√N, full stop. Not h², not h⁴ — 1/√N. A hundredfold
- * increase in samples buys one extra digit. Against Simpson's rule on a smooth
- * function that is a rout. But the exponent has no d in it: doubling the
- * accuracy costs 4× the samples in one dimension and 4× the samples in twenty,
- * whereas a grid rule needs 2^d times as many points per refinement and is
- * hopeless past about six dimensions. That crossing point is the whole reason
- * the method exists.
- *
- * What it does uniquely well is *report its own uncertainty*. The samples are
- * independent, so the sample variance is an estimate of the estimator's
- * variance, and the central limit theorem turns that into a confidence
- * interval. No deterministic rule gives you that for free — a Simpson estimate
- * comes with an error bound involving a fourth derivative you do not have.
- */
+/*
+  montecarlo.js: integration by random sampling.
+  ..................................................
+
+  Monte Carlo is the worst method here on a smooth one-dimensional integral and
+  the only practical one in high dimensions, and understanding why is worth
+  more than either fact alone.
+
+  Its error falls as 1/√N, full stop. Not h², not h⁴; 1/√N. A hundredfold
+  increase in samples buys one extra digit. Against Simpson's rule on a smooth
+  function that is a rout. But the exponent has no d in it: doubling the
+  accuracy costs 4× the samples in one dimension and 4× the samples in twenty,
+  whereas a grid rule needs 2^d times as many points per refinement and is
+  hopeless past about six dimensions. That crossing point is the whole reason
+  the method exists.
+
+  What it does uniquely well is *report its own uncertainty*. The samples are
+  independent, so the sample variance is an estimate of the estimator's
+  variance, and the central limit theorem turns that into a confidence
+  interval. No deterministic rule gives you that for free: a Simpson estimate
+  comes with an error bound involving a fourth derivative you do not have.
+*/
 
 /**
  * A small deterministic generator, so an experiment can be repeated exactly.
@@ -101,7 +102,7 @@ function defaultCheckpoints(n) {
  * The variance of the estimator is the *average within-stratum* variance rather
  * than the total variance, and stratifying removes the between-stratum part
  * entirely. On a smooth monotone function almost all the variance is
- * between-stratum, so this is a large win — the error falls as N^(-3/2) rather
+ * between-stratum, so this is a large win: the error falls as N^(-3/2) rather
  * than N^(-1/2) for a C¹ integrand.
  *
  * The price: the samples are no longer independent, so the plain sample
@@ -142,7 +143,7 @@ export function stratified(f, a, b, n = 10000, options = {}) {
  * Antithetic variates: pair every sample x with its mirror a + b − x.
  *
  * If f is monotone the two are negatively correlated, and the variance of their
- * mean is lower than the variance of two independent samples — for a linear
+ * mean is lower than the variance of two independent samples, for a linear
  * integrand it is exactly zero, because the pair straddles the mean perfectly.
  * A variance reduction that costs nothing but a sign.
  */
@@ -176,11 +177,11 @@ export function antithetic(f, a, b, n = 10000, options = {}) {
 }
 
 /**
- * Hit-or-miss in two dimensions — the picture everyone has of Monte Carlo.
+ * Hit-or-miss in two dimensions: the picture everyone has of Monte Carlo.
  *
  * Throw darts at a rectangle containing the region and count what lands inside.
- * It is much *worse* than the mean-value method above — the variance of a
- * Bernoulli indicator is larger than the variance of f itself — and it is here
+ * It is much *worse* than the mean-value method above; the variance of a
+ * Bernoulli indicator is larger than the variance of f itself, and it is here
  * because it is the version you can see, and seeing it is the point.
  *
  * Signed areas are handled by counting a point below the axis and above f as a

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="day">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>INTEGRA — an interactive laboratory for integral calculus</title>
+<title>Integra · a working notebook for integral calculus</title>
 <meta name="description" content="Construct, visualise and experimentally investigate integration. Symbolic antiderivatives, eight numerical methods, convergence measurement, and a laboratory for finding the functions that break them.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='14' font-family='Georgia,serif'>∫</text></svg>">
@@ -11,13 +11,7 @@
 <body>
 
 <header class="masthead">
-  <div class="brand">
-    <span class="sigil">∫</span>
-    <div class="brand-text">
-      <strong>INTEGRA</strong>
-      <small>an interactive laboratory for integral calculus</small>
-    </div>
-  </div>
+  <h1 class="wordmark">Integra</h1>
 
   <form id="entry" class="entry" autocomplete="off">
     <label class="field field-f">
@@ -32,49 +26,29 @@
       <span class="field-label">to</span>
       <input id="hi" type="text" value="2" spellcheck="false" aria-label="upper limit">
     </label>
-    <button id="go" class="primary" type="submit">Integrate</button>
+    <button id="go" class="primary" type="submit">Evaluate</button>
   </form>
 
   <div class="masthead-tools">
-    <button id="theme" class="icon-button" title="Switch between light and dark" aria-label="Switch theme">◐</button>
+    <button id="theme" class="quiet-button" title="Switch between day and night" aria-label="Switch theme">Night</button>
   </div>
 </header>
 
 <p id="parse-error" class="parse-error" hidden></p>
 
+<nav class="contents" aria-label="Sections">
+    <button class="contents-item active" data-mode="lab">The integral</button>
+    <button class="contents-item" data-mode="riemann">Riemann sums</button>
+    <button class="contents-item" data-mode="convergence">Convergence</button>
+    <button class="contents-item" data-mode="compare">Comparison</button>
+    <button class="contents-item" data-mode="monte">Monte Carlo</button>
+    <button class="contents-item" data-mode="improper">Improper</button>
+    <button class="contents-item" data-mode="break">Stress test</button>
+    <button class="contents-item" data-mode="working">Derivation</button>
+    <button class="contents-item" data-mode="library">Examples</button>
+</nav>
+
 <div class="shell">
-
-  <nav class="rail" aria-label="Laboratories">
-    <button class="rail-item active" data-mode="lab">
-      <span class="rail-glyph">∫</span><span class="rail-name">Integral</span>
-    </button>
-    <button class="rail-item" data-mode="riemann">
-      <span class="rail-glyph">▤</span><span class="rail-name">Riemann</span>
-    </button>
-    <button class="rail-item" data-mode="convergence">
-      <span class="rail-glyph">◿</span><span class="rail-name">Convergence</span>
-    </button>
-    <button class="rail-item" data-mode="compare">
-      <span class="rail-glyph">≡</span><span class="rail-name">Compare</span>
-    </button>
-    <button class="rail-item" data-mode="monte">
-      <span class="rail-glyph">⁙</span><span class="rail-name">Monte Carlo</span>
-    </button>
-    <button class="rail-item" data-mode="improper">
-      <span class="rail-glyph">∞</span><span class="rail-name">Improper</span>
-    </button>
-    <button class="rail-item" data-mode="break">
-      <span class="rail-glyph">⚡</span><span class="rail-name">Break it</span>
-    </button>
-    <button class="rail-item" data-mode="working">
-      <span class="rail-glyph">∂</span><span class="rail-name">Working</span>
-    </button>
-    <div class="rail-spacer"></div>
-    <button class="rail-item" data-mode="library">
-      <span class="rail-glyph">☰</span><span class="rail-name">Library</span>
-    </button>
-  </nav>
-
   <main class="stage">
 
     <!-- ── the main integral ───────────────────────────────────────────── -->

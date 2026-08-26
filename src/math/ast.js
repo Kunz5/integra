@@ -1,24 +1,25 @@
-/**
- * ast.js — the expression tree everything else in INTEGRA operates on.
- *
- * A mathematical expression is held as a tree, never as a string. Strings are
- * what the user types and what we print; between those two points the
- * expression is a structure that can be differentiated, integrated, simplified,
- * compared for equality and compiled to a closure. Keeping the tree canonical —
- * n-ary sums and products, sorted, with numeric parts folded — is what makes
- * `sin(x)^2 + cos(x)^2 - 1` reducible and what lets the integrator recognise
- * the forms it knows.
- *
- * Node shapes:
- *   { k: 'num',  v: Number }
- *   { k: 'const', name: 'pi' | 'e' }
- *   { k: 'var',  name: String }
- *   { k: 'add',  args: Node[] }              n-ary
- *   { k: 'mul',  args: Node[] }              n-ary
- *   { k: 'pow',  base: Node, exp: Node }
- *   { k: 'call', name: String, args: Node[] }
- *   { k: 'piece', cases: [{ when: Node, then: Node }], otherwise: Node }
- */
+/*
+  ast.js: the expression tree everything else in INTEGRA operates on.
+  ..................................................................
+
+  A mathematical expression is held as a tree, never as a string. Strings are
+  what the user types and what we print; between those two points the
+  expression is a structure that can be differentiated, integrated, simplified,
+  compared for equality and compiled to a closure. Keeping the tree canonical;
+  n-ary sums and products, sorted, with numeric parts folded; is what makes
+  `sin(x)^2 + cos(x)^2 - 1` reducible and what lets the integrator recognise
+  the forms it knows.
+
+  Node shapes:
+    { k: 'num',  v: Number }
+    { k: 'const', name: 'pi' | 'e' }
+    { k: 'var',  name: String }
+    { k: 'add',  args: Node[] }              n-ary
+    { k: 'mul',  args: Node[] }              n-ary
+    { k: 'pow',  base: Node, exp: Node }
+    { k: 'call', name: String, args: Node[] }
+    { k: 'piece', cases: [{ when: Node, then: Node }], otherwise: Node }
+*/
 
 export const NUM = (v) => ({ k: 'num', v });
 export const VAR = (name) => ({ k: 'var', name });

@@ -1,16 +1,17 @@
-/**
- * app.js — the controller.
- *
- * Holds one piece of state — the integral currently under study — and renders
- * whichever laboratory is open from it. Each laboratory is a pure function of
- * that state plus its own controls, so switching between them never loses work
- * and never shows a stale answer computed from a different function.
- *
- * The heavy work (convergence sweeps, the break-the-method scans) runs in a
- * worker. It is only a second or two, but a second of frozen interface is a
- * second in which a slider does not move, and a laboratory whose sliders stick
- * is not one anybody experiments with.
- */
+/*
+  app.js: the controller.
+  ...........................
+
+  Holds one piece of state; the integral currently under study, and renders
+  whichever laboratory is open from it. Each laboratory is a pure function of
+  that state plus its own controls, so switching between them never loses work
+  and never shows a stale answer computed from a different function.
+
+  The heavy work (convergence sweeps, the break-the-method scans) runs in a
+  worker. It is only a second or two, but a second of frozen interface is a
+  second in which a slider does not move, and a laboratory whose sliders stick
+  is not one anybody experiments with.
+*/
 
 import { parse, tryParse, ParseError } from '../math/parser.js';
 import { simplify } from '../math/simplify.js';
@@ -34,12 +35,15 @@ const $ = (id) => document.getElementById(id);
 const html = (strings, ...vals) => strings.reduce((s, part, i) => s + part + (vals[i] ?? ''), '');
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const SERIES_COLOURS = ['#5eb0ff', '#ffb454', '#4ade80', '#f472b6', '#a78bfa', '#fb923c', '#22d3ee'];
+// Plate colours for multi-series figures: oxblood, indigo, moss, ochre, plum,
+// slate, teal. Muted enough to sit on cream without shouting, separated enough
+// to tell apart at a glance.
+const SERIES_COLOURS = ['#7c2d16', '#2f4776', '#2b5741', '#8a6314', '#5c3a5e', '#5a6472', '#1f6b6b'];
 
 class App {
   constructor() {
     this.mode = 'lab';
-    this.theme = 'dark';
+    this.theme = 'day';
     this.state = null;                 // the parsed, compiled integral
 
     this.plots = {
@@ -59,7 +63,9 @@ class App {
 
     this.buildControls();
     this.bind();
-    this.applyTheme(prefersLight() ? 'light' : 'dark');
+    // Day is the default regardless of the system preference. The page is set as
+    // a printed one; night is a reading mode, not the resting state.
+    this.applyTheme('day');
     this.setEntry(DEFAULT_EXAMPLE);
     this.compute();
   }
@@ -77,7 +83,7 @@ class App {
 
     $('library').innerHTML = GROUPS.map((g) => html`
       <h2 class="section">${esc(g.name)}</h2>
-      <p class="note" style="max-width:76ch">${esc(g.blurb)}</p>
+      <p class="note" style="max-width:44rem">${esc(g.blurb)}</p>
       <div class="library-grid">
         ${g.items.map((it) => {
           const label = `∫ from ${it.a} to ${it.b} of ${it.f}`;
@@ -98,11 +104,11 @@ class App {
       $(id).addEventListener('change', () => this.compute());
     }
 
-    for (const btn of document.querySelectorAll('.rail-item')) {
+    for (const btn of document.querySelectorAll('.contents-item')) {
       btn.addEventListener('click', () => this.setMode(btn.dataset.mode));
     }
 
-    $('theme').addEventListener('click', () => this.applyTheme(this.theme === 'dark' ? 'light' : 'dark'));
+    $('theme').addEventListener('click', () => this.applyTheme(this.theme === 'day' ? 'night' : 'day'));
 
     $('riemann-methods').addEventListener('click', (e) => {
       const btn = e.target.closest('.chip');
@@ -191,7 +197,7 @@ class App {
     this.theme = name;
     document.documentElement.dataset.theme = name;
     for (const p of Object.values(this.plots)) p.setTheme(name);
-    $('theme').textContent = name === 'dark' ? '◐' : '◑';
+    $('theme').textContent = name === 'day' ? 'Night' : 'Day';
     this.render();
   }
 
@@ -208,7 +214,7 @@ class App {
 
   setMode(mode) {
     this.mode = mode;
-    for (const btn of document.querySelectorAll('.rail-item')) btn.classList.toggle('active', btn.dataset.mode === mode);
+    for (const btn of document.querySelectorAll('.contents-item')) btn.classList.toggle('active', btn.dataset.mode === mode);
     for (const pane of document.querySelectorAll('.pane')) pane.classList.toggle('active', pane.dataset.mode === mode);
     // A canvas inside a hidden pane measures zero, so it has to be re-sized the
     // moment its pane becomes visible — and re-drawn, because setting a
@@ -334,7 +340,7 @@ class App {
 
     $('main-caption').innerHTML = this.state.isImproper
       ? 'This integral is improper — shaded to the plotting window, not to the whole region. The <em>Improper</em> laboratory shows the limit being approached.'
-      : 'The shaded region is what is being measured. Blue is positive area, red negative — an integral is a <em>signed</em> area, and the two subtract.';
+      : 'The shaded region is what is being measured. Warm shading is area above the axis, cool shading below: an integral is a <em>signed</em> area and the two subtract.';
 
     const rows = [];
     rows.push(`<div class="formula accent">${definiteIntegralML(ast, a, b, v)}</div>`);
@@ -450,7 +456,7 @@ class App {
         <span>${result.skipped} of the ${result.evaluations} samples had no finite value and were left out of the sum. The result below is the integral of what could be sampled, which is not the same thing.</span></div>`);
     }
 
-    // What happens if N doubles — the order, made concrete.
+    // What happens if N doubles, the order, made concrete.
     const doubled = method.run(f, a, b, n * 2);
     const errDoubled = Math.abs(doubled.value - truth);
     if (err > 0 && errDoubled > 0) {
@@ -697,7 +703,7 @@ class App {
         </tbody></table></div>`);
 
     rows.push(html`<p class="note">All three draw the same number of samples. <strong>Stratified</strong> takes one from each equal
-      sub-interval instead of N independent ones, which removes the between-stratum variance — on a smooth function that
+      sub-interval instead of N independent ones, which removes the between-stratum variance: on a smooth function that
       is nearly all of it. <strong>Antithetic</strong> pairs every sample with its mirror; on a monotone integrand the two
       are negatively correlated and the pair mean is steadier than either.</p>`);
 
@@ -869,7 +875,7 @@ class App {
         <p><strong>Verification.</strong> A heuristic search is only safe because its output is checked. Differentiating the
         candidate gives</p>
         <div class="formula">${mathBlock('<mfrac><mrow><mi mathvariant="normal">d</mi><mi>F</mi></mrow><mrow><mi mathvariant="normal">d</mi><mi>x</mi></mrow></mfrac><mo>=</mo>' + toMathML(simplify(derivative(F, v))), { display: true })}</div>
-        <p>which is the integrand. A candidate that fails this check is discarded and never shown — the engine reports
+        <p>which is the integrand. A candidate that fails this check is discarded and never shown; the engine reports
         that it found nothing rather than showing you something it cannot stand behind.</p>
       </div>`);
     } else {
@@ -903,7 +909,7 @@ class App {
         <p>The fundamental theorem needs an antiderivative, and there is none to use. Every number on this page for this
         integral therefore comes from quadrature.</p>
         <p>That is the ordinary case rather than the exceptional one. Most integrals that arise in physics, statistics and
-        engineering have no closed form, and for them the numerical value <em>is</em> the answer — not a fallback from a
+        engineering have no closed form, and for them the numerical value <em>is</em> the answer: not a fallback from a
         better method that failed. What the fundamental theorem buys, when it applies, is a way to get the answer exactly
         and instantly; what quadrature buys is a way to get it at all.</p>
       </div>`);
@@ -915,7 +921,7 @@ class App {
       <div class="formula">${mathBlock('<mi>x</mi><mo>=</mo><mi>tanh</mi><mo stretchy="false">(</mo><mfrac><mi>π</mi><mn>2</mn></mfrac><mi>sinh</mi><mspace width="0.1em"/><mi>t</mi><mo stretchy="false">)</mo>', { display: true })}</div>
       <p>Under this substitution the interval (−1, 1) becomes the whole real line, and the Jacobian decays
       <em>doubly</em> exponentially at both ends. Two consequences: the endpoints are never evaluated, so a singularity
-      there costs nothing; and the transformed integrand dies so fast that the plain trapezoidal rule on a uniform
+      there costs nothing, and the transformed integrand dies so fast that the plain trapezoidal rule on a uniform
       <em>t</em>-grid converges faster than any polynomial rule.</p>
       <p>It used <strong>${numeric.evaluations}</strong> function evaluations and
       ${numeric.converged === false ? 'did <strong>not</strong> reach its tolerance' : `reached its tolerance in ${numeric.levels} refinement levels`}.</p>
@@ -939,17 +945,12 @@ class App {
   }
 }
 
-// ── helpers ─────────────────────────────────────────────────────────────────
-
+//  helpers  .............................................................
 function memo(cache, key, fn) {
   if (cache.has(key)) return cache.get(key);
   const v = fn();
   cache.set(key, v);
   return v;
-}
-
-function prefersLight() {
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
 }
 
 function variablesIn(ast) {

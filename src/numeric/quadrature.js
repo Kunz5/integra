@@ -1,20 +1,21 @@
-/**
- * quadrature.js — the classical fixed-rule methods.
- *
- * Every rule here is a weighted sum of samples, and every one is implemented
- * from its definition rather than called out to. The differences between them
- * are the whole subject: what changes is where the samples go and what weights
- * they carry, and that single choice is worth two, four, or in the Gaussian
- * case 2n orders of accuracy.
- *
- * Shared contract for every routine:
- *   · returns { value, evaluations, samples }
- *   · a sample that is not finite is *not* silently replaced by zero — it is
- *     counted, reported, and left out of the sum, and the caller is told. An
- *     integrator that quietly reads NaN as 0 will return a confident, precise,
- *     wrong number for ∫₀¹ dx/√x, and that is the single most dangerous thing a
- *     numerical tool can do.
- */
+/*
+  quadrature.js: the classical fixed-rule methods.
+  ....................................................
+
+  Every rule here is a weighted sum of samples, and every one is implemented
+  from its definition rather than called out to. The differences between them
+  are the whole subject: what changes is where the samples go and what weights
+  they carry, and that single choice is worth two, four, or in the Gaussian
+  case 2n orders of accuracy.
+
+  Shared contract for every routine:
+    · returns { value, evaluations, samples }
+    · a sample that is not finite is *not* silently replaced by zero — it is
+      counted, reported, and left out of the sum, and the caller is told. An
+      integrator that quietly reads NaN as 0 will return a confident, precise,
+      wrong number for ∫₀¹ dx/√x, and that is the single most dangerous thing a
+      numerical tool can do.
+*/
 
 /** @typedef {(x: number) => number} RealFunction */
 
@@ -52,7 +53,7 @@ export function riemann(f, a, b, n, where = 'left') {
 /**
  * Trapezoidal rule: straight lines between consecutive samples.
  *
- * Second-order — halving h quarters the error — and exact for anything linear.
+ * Second-order, halving h quarters the error, and exact for anything linear.
  * The endpoints carry half weight because each interior sample is shared by the
  * two strips on either side of it.
  */
@@ -73,7 +74,7 @@ export function trapezoid(f, a, b, n) {
  * Simpson's 1/3 rule: a parabola through each consecutive triple of samples.
  *
  * The 1-4-2-4-…-4-1 weights are what integrating that parabola exactly gives.
- * It is fourth-order, and — this is the part worth noticing — exact for cubics
+ * It is fourth-order, and: this is the part worth noticing — exact for cubics
  * as well as quadratics, because the error term involves the fourth derivative
  * and a cubic's fourth derivative is zero. Two orders of accuracy for free.
  *
@@ -98,7 +99,7 @@ export function simpson(f, a, b, n) {
 /**
  * Simpson's 3/8 rule: a cubic through each consecutive quadruple.
  *
- * Also fourth-order — it is *not* more accurate than the 1/3 rule despite using
+ * Also fourth-order; it is *not* more accurate than the 1/3 rule despite using
  * a higher-degree interpolant, which surprises people. Its constant is slightly
  * worse per interval. It earns its place by needing a multiple of three strips
  * rather than two, which is how a composite rule closes out an odd remainder.
@@ -164,7 +165,7 @@ export const FIXED_METHODS = {
   },
   right: {
     label: 'Right Riemann', order: 1, run: (f, a, b, n) => riemann(f, a, b, n, 'right'),
-    note: 'Height at the right edge. Mirror image of the left rule, and it errs the opposite way on a monotone function — which is why averaging the two gives the trapezoidal rule.',
+    note: 'Height at the right edge. Mirror image of the left rule, and it errs the opposite way on a monotone function, which is why averaging the two gives the trapezoidal rule.',
   },
   mid: {
     label: 'Midpoint', order: 2, run: (f, a, b, n) => riemann(f, a, b, n, 'mid'),
@@ -180,6 +181,6 @@ export const FIXED_METHODS = {
   },
   simpson38: {
     label: "Simpson's 3/8", order: 4, run: simpson38,
-    note: 'Cubics through consecutive quadruples. Also fourth-order — a higher-degree interpolant does not buy extra order here — with a slightly worse constant.',
+    note: 'Cubics through consecutive quadruples. Also fourth-order, a higher-degree interpolant does not buy extra order here, with a slightly worse constant.',
   },
 };

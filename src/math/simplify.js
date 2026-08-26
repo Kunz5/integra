@@ -1,25 +1,26 @@
-/**
- * simplify.js — push an expression into canonical form.
- *
- * Simplification here is not "make it prettier". It is the operation that makes
- * structural equality mean something: `x + x` and `2x` are the same expression,
- * and until they are the same *tree*, nothing downstream — the integrator's
- * pattern matching, the check that a derivative came back to where it started,
- * the decision that a term vanished — can see that.
- *
- * The canonical form:
- *   · sums and products are n-ary and flat, never nested chains of binaries
- *   · numeric factors and terms are folded into one, and lead
- *   · like terms are collected: x + x → 2x,  x·x → x²
- *   · arguments are sorted by the total order in ast.js
- *   · powers of powers are flattened where that is unconditionally valid
- *
- * What it deliberately does NOT do: anything that is only true on part of the
- * domain. √(x²) does not become x, ln(eˣ) does not become x, and (x²)^(1/2)
- * stays put. Those "simplifications" are false for half the real line, and a
- * mathematics tool that quietly makes them is worse than one that leaves the
- * expression alone.
- */
+/*
+  simplify.js: push an expression into canonical form.
+  ........................................................
+
+  Simplification here is not "make it prettier". It is the operation that makes
+  structural equality mean something: `x + x` and `2x` are the same expression,
+  and until they are the same *tree*, nothing downstream, the integrator's
+  pattern matching, the check that a derivative came back to where it started,
+  the decision that a term vanished; can see that.
+
+  The canonical form:
+    · sums and products are n-ary and flat, never nested chains of binaries
+    · numeric factors and terms are folded into one, and lead
+    · like terms are collected: x + x → 2x,  x·x → x²
+    · arguments are sorted by the total order in ast.js
+    · powers of powers are flattened where that is unconditionally valid
+
+  What it deliberately does NOT do: anything that is only true on part of the
+  domain. √(x²) does not become x, ln(eˣ) does not become x, and (x²)^(1/2)
+  stays put. Those "simplifications" are false for half the real line, and a
+  mathematics tool that quietly makes them is worse than one that leaves the
+  expression alone.
+*/
 
 import {
   NUM, VAR, CONST, add, mul, pow, call, numericValue, isNum, isZero, isOne,
@@ -46,8 +47,7 @@ export function simplify(node) {
   }
 }
 
-// ── sums ────────────────────────────────────────────────────────────────────
-
+//  sums  ................................................................
 function simplifyAdd(args) {
   const flat = [];
   for (const a of args) {
@@ -99,8 +99,7 @@ function splitCoefficient(node) {
   return { coeff: 1, rest: node };
 }
 
-// ── products ────────────────────────────────────────────────────────────────
-
+//  products  ............................................................
 function simplifyMul(args) {
   const flat = [];
   for (const a of args) {
@@ -150,8 +149,7 @@ function splitPower(node) {
   return { base: node, exp: NUM(1) };
 }
 
-// ── powers ──────────────────────────────────────────────────────────────────
-
+//  powers  ..............................................................
 function simplifyPow(base, exp) {
   if (isZero(exp)) {
     // 0^0 is left as-is rather than declared 1: it is genuinely undefined as a
@@ -181,7 +179,7 @@ function simplifyPow(base, exp) {
   }
 
   // (u^a)^b → u^(ab) only when b is an integer. For non-integer b this is false
-  // — (x²)^(1/2) is |x|, not x — and that is exactly the kind of quiet lie this
+  // — (x²)^(1/2) is |x|, not x, and that is exactly the kind of quiet lie this
   // module refuses to tell.
   if (base.k === 'pow' && exp.k === 'num' && Number.isInteger(exp.v)) {
     return simplifyPow(base.base, simplifyMul([base.exp, exp]));
@@ -201,8 +199,7 @@ function simplifyPow(base, exp) {
 
 const isOddInteger = (v) => Number.isInteger(v) && Math.abs(v % 2) === 1;
 
-// ── function calls ──────────────────────────────────────────────────────────
-
+//  function calls  ......................................................
 /** Exact values worth knowing, keyed by function then by argument's printed form. */
 const EXACT = {
   sin: { '0': 0, 'pi': 0, '(1/2)*pi': 1, '(1/6)*pi': 0.5 },
@@ -305,8 +302,7 @@ function asNegation(node) {
   return null;
 }
 
-// ── keys ────────────────────────────────────────────────────────────────────
-
+//  keys  ................................................................
 /**
  * A canonical string for a node, used to group like terms. This is why the
  * grouping is O(n) rather than O(n²) structural comparisons, and it is only

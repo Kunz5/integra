@@ -1,32 +1,34 @@
-/**
- * integrate.js — symbolic antiderivatives, and an honest answer when there
- * isn't one.
- *
- * Integration is a search, not an algorithm. Differentiation of an elementary
- * function always yields an elementary function; integration frequently does
- * not — ∫e^(−x²)dx and ∫(sin x)/x dx have no elementary antiderivative at all,
- * and Liouville's theorem says that is a fact about the functions, not a gap in
- * anyone's cleverness. A full decision procedure exists (the Risch algorithm)
- * and is enormous. What follows is the classical toolkit, applied in order:
- *
- *   1. the table of standard forms
- *   2. linearity — constants out, sums term by term
- *   3. linear substitution — f(ax+b) needs only a factor of 1/a
- *   4. general u-substitution, searched over subexpressions
- *   5. integration by parts, with a recursion budget
- *   6. partial fractions for rational functions
- *   7. trigonometric powers and products
- *
- * The part that makes heuristic search safe is the last step, not the first:
- * **every candidate is differentiated and checked against the integrand**. A
- * rule may be wrong, a substitution may be invalid, the search may go somewhere
- * silly — and none of that can produce a wrong answer on screen, because a
- * candidate that does not differentiate back is discarded and the honest
- * "no elementary antiderivative found" is returned instead.
- *
- * The distinction between "none found" and "none exists" is preserved
- * everywhere. This module can prove neither, and says so.
- */
+/*
+  integrate.js: symbolic antiderivatives, and an honest answer when there
+  ..................................................................
+
+  isn't one.
+
+  Integration is a search, not an algorithm. Differentiation of an elementary
+  function always yields an elementary function; integration frequently does
+  not — ∫e^(−x²)dx and ∫(sin x)/x dx have no elementary antiderivative at all,
+  and Liouville's theorem says that is a fact about the functions, not a gap in
+  anyone's cleverness. A full decision procedure exists (the Risch algorithm)
+  and is enormous. What follows is the classical toolkit, applied in order:
+
+    1. the table of standard forms
+    2. linearity; constants out, sums term by term
+    3. linear substitution — f(ax+b) needs only a factor of 1/a
+    4. general u-substitution, searched over subexpressions
+    5. integration by parts, with a recursion budget
+    6. partial fractions for rational functions
+    7. trigonometric powers and products
+
+  The part that makes heuristic search safe is the last step, not the first:
+  **every candidate is differentiated and checked against the integrand**. A
+  rule may be wrong, a substitution may be invalid, the search may go somewhere
+  silly, and none of that can produce a wrong answer on screen, because a
+  candidate that does not differentiate back is discarded and the honest
+  "no elementary antiderivative found" is returned instead.
+
+  The distinction between "none found" and "none exists" is preserved
+  everywhere. This module can prove neither, and says so.
+*/
 
 import {
   NUM, ZERO, ONE, VAR, CONST, add, mul, pow, call, neg, sub, div,
@@ -76,7 +78,7 @@ export function integrate(f, v = X) {
   if (!check.ok) {
     return {
       ok: false,
-      reason: 'A candidate antiderivative was found but it failed verification — '
+      reason: 'A candidate antiderivative was found but it failed verification: '
         + 'differentiating it did not return the original integrand, so it has been discarded '
         + 'rather than shown to you. This is a limitation of the engine, not of the integral.',
       attempted: trail,
@@ -93,14 +95,13 @@ export function integrate(f, v = X) {
   };
 }
 
-// ── verification ────────────────────────────────────────────────────────────
-
+//  verification  ........................................................
 /**
  * Is F really an antiderivative of f?
  *
  * Two tests, in order of strength. Structural equality after simplification is
- * a proof, as far as this engine's algebra reaches. When that fails — and it
- * often does on a correct answer, because the simplifier is not complete —
+ * a proof, as far as this engine's algebra reaches. When that fails, and on a correct answer it often does, it
+ * often does on a correct answer, because the simplifier is not complete:
  * fall back to sampling: agreement to 1e-9 relative at many scattered points
  * inside the domain is overwhelming evidence, and is *labelled* as evidence
  * rather than as proof, because that is what it is.
@@ -147,11 +148,10 @@ export function verify(F, f, v = X) {
   return { ok: false };
 }
 
-// ── the search ──────────────────────────────────────────────────────────────
-
+//  the search  ..........................................................
 // Deep enough for five nested applications of integration by parts, which is
-// what ∫x⁵eˣ costs. Each level is cheap — the rules that recurse all shrink the
-// integrand — and the whole search runs in single-digit milliseconds even when
+// what ∫x⁵eˣ costs. Each level is cheap: the rules that recurse all shrink the
+// integrand, and the whole search runs in single-digit milliseconds even when
 // it fails, so the budget is set by what is useful rather than by what is fast.
 const MAX_DEPTH = 20;
 
@@ -176,8 +176,7 @@ function inner(f, v, depth, trail) {
   return r ? r.expr : null;
 }
 
-// ── rule 1: constants and the power rule ────────────────────────────────────
-
+//  rule 1: constants and the power rule  ................................
 function ruleConstant(e, v) {
   if (!dependsOn(e, v)) return mul(e, VAR(v));
   return null;
@@ -195,11 +194,10 @@ function rulePower(e, v) {
   return mul(pow(VAR(v), n1), pow(n1, NUM(-1)));
 }
 
-// ── rule 2: the table ───────────────────────────────────────────────────────
-
+//  rule 2: the table  ...................................................
 /**
- * Standard forms, keyed by function name. Each entry takes the argument — which
- * the caller has already checked is the bare variable — and returns the
+ * Standard forms, keyed by function name. Each entry takes the argument, which
+ * the caller has already checked is the bare variable, and returns the
  * antiderivative.
  */
 const TABLE = {
@@ -224,7 +222,7 @@ const TABLE = {
   atan: (u) => sub(mul(u, call('atan', u)), mul(NUM(0.5), call('ln', add(ONE, pow(u, NUM(2)))))),
 
   sqrt: (u) => mul(NUM(2 / 3), pow(u, NUM(1.5))),
-  // |x| integrates to x|x|/2 — which is x²/2 for x > 0 and −x²/2 for x < 0,
+  // |x| integrates to x|x|/2, which is x²/2 for x > 0 and −x²/2 for x < 0,
   // exactly right and continuous through zero.
   abs: (u) => mul(NUM(0.5), u, call('abs', u)),
   sign: (u) => call('abs', u),
@@ -313,8 +311,7 @@ export function asQuadratic(e, v) {
   return { a: p[2] ?? ZERO, b: p[1] ?? ZERO, c: p[0] ?? ZERO };
 }
 
-// ── rule 3: linearity ───────────────────────────────────────────────────────
-
+//  rule 3: linearity  ...................................................
 function ruleSum(e, v, depth, trail) {
   if (e.k !== 'add') return null;
   const parts = [];
@@ -336,8 +333,7 @@ function ruleConstantMultiple(e, v, depth, trail) {
   return F ? mul(mul(constants), F) : null;
 }
 
-// ── rule 4: linear substitution ─────────────────────────────────────────────
-
+//  rule 4: linear substitution  .........................................
 /**
  * If every occurrence of v sits inside the same (a·v + b), integrate in that
  * variable and divide by a. This is the workhorse: it handles sin(3x), e^(−2x),
@@ -398,8 +394,7 @@ export function asLinear(n, v) {
   return { a: p[1] ?? ZERO, b: p[0] ?? ZERO };
 }
 
-// ── rule 5: general substitution ────────────────────────────────────────────
-
+//  rule 5: general substitution  ........................................
 /**
  * u-substitution by search.
  *
@@ -407,7 +402,7 @@ export function asLinear(n, v) {
  * result can be written entirely in terms of u. The test is structural: replace
  * every occurrence of u by a fresh symbol and see whether v has disappeared.
  * That is a sufficient condition and not a necessary one, which is exactly the
- * right side to err on — a substitution this misses costs a "not found", one it
+ * right side to err on: a substitution this misses costs a "not found", one it
  * takes wrongly is caught by the verifier.
  */
 function ruleSubstitution(e, v, depth, trail) {
@@ -459,8 +454,8 @@ function substitutionCandidates(e, v) {
   visit(e);
   push(e);
 
-  // Prefer inner arguments of functions and denominators — the classical
-  // choices — over whole products, and simpler over more complex.
+  // Prefer inner arguments of functions and denominators: the classical
+  // choices: over whole products, and simpler over more complex.
   return [...seen.values()].sort((a, b) => complexity(a) - complexity(b));
 }
 
@@ -477,13 +472,12 @@ function replaceSubtree(n, u, to) {
   }
 }
 
-// ── rule 6: integration by parts ────────────────────────────────────────────
-
+//  rule 6: integration by parts  ........................................
 /**
  * ∫u dv = uv − ∫v du.
  *
  * The whole difficulty is choosing u. The classroom mnemonic LIATE —
- * logarithmic, inverse trig, algebraic, trigonometric, exponential — is a
+ * logarithmic, inverse trig, algebraic, trigonometric, exponential; is a
  * ranking of how much better a factor gets when you differentiate it, and it is
  * a genuinely good heuristic. Rank each factor, differentiate the best-ranked
  * one, integrate the rest, and recurse. The depth budget stops x^n·e^x from
@@ -522,7 +516,7 @@ function rulePartsRule(e, v, depth, trail) {
     if (isZero(du)) continue;
 
     const remaining = simplify(mul(V, du));
-    // Refuse a step that made the problem bigger — that is the loop.
+    // Refuse a step that made the problem bigger: that is the loop.
     if (complexity(remaining) > complexity(e) * 3 + 8) continue;
 
     const R = inner(remaining, v, depth + 1, trail);
@@ -555,8 +549,7 @@ function liate(f, v) {
   return 2;
 }
 
-// ── rule 7: rational functions by partial fractions ─────────────────────────
-
+//  rule 7: rational functions by partial fractions  .....................
 /**
  * Coefficients of a polynomial in v, lowest power first, or null.
  * `asPolynomial(3x² − 1, 'x')` → `[NUM(-1), ZERO, NUM(3)]`.
@@ -664,7 +657,7 @@ function deflate(p, r) {
 /**
  * Rational roots of an integer-coefficient polynomial, by the rational root
  * theorem: any p/q root has p | a₀ and q | aₙ. Exhaustive over the divisors, so
- * it finds every rational root there is — and it is honest about the rest,
+ * it finds every rational root there is, and it is honest about the rest,
  * because an irrational or complex root is simply not returned.
  */
 function rationalRoots(coeffs) {
@@ -743,7 +736,7 @@ const lcm = (a, b) => Math.abs(a * b) / (gcd(a, b) || 1);
  * and one irreducible quadratic.
  *
  * The coefficients are recovered by solving the linear system that equating
- * numerators produces — Gaussian elimination on a small dense matrix. Sampling
+ * numerators produces: Gaussian elimination on a small dense matrix. Sampling
  * would be quicker to write and would quietly fail on repeated factors.
  */
 function rulePartialFractions(e, v, depth, trail) {
@@ -914,14 +907,13 @@ function solveLinear(A, n) {
   return x;
 }
 
-// ── rule 8: the cyclic case, e^(ax)·sin(bx) ─────────────────────────────────
-
+//  rule 8: the cyclic case, e^(ax)·sin(bx)  .............................
 /**
  * ∫e^(ax)·sin(bx) dx and its cosine twin.
  *
  * Integration by parts on these does not terminate: two applications return the
  * original integral, and the classical move is to treat that as an equation and
- * solve for it —
+ * solve for it,
  *
  *     I = e^(ax)(a·sin bx − b·cos bx)/(a² + b²)
  *
@@ -963,7 +955,7 @@ function ruleCyclicParts(e, v) {
   return mul(NUM(coeff / denom), E, body);
 }
 
-/** If f is e^(a·v) — written either way — return a. */
+/** If f is e^(a·v), written either way — return a. */
 function exponentialRate(f, v) {
   if (f.k === 'call' && f.name === 'exp' && f.args.length === 1) {
     const lin = asLinear(f.args[0], v);
@@ -982,8 +974,7 @@ function exponentialRate(f, v) {
   return null;
 }
 
-// ── rule 9: trigonometric substitution ──────────────────────────────────────
-
+//  rule 9: trigonometric substitution  ..................................
 /**
  * The three square-root forms that a trigonometric substitution linearises.
  *
@@ -993,8 +984,8 @@ function exponentialRate(f, v) {
  *
  * Each one trades a root for a trigonometric power, which the reduction rule
  * below then handles. Rather than carry the substitution through symbolically
- * and undo it with a right-triangle argument — which is where this goes wrong
- * by hand — the results are tabulated in their standard closed forms and left
+ * and undo it with a right-triangle argument, which is where this goes wrong
+ * by hand, the results are tabulated in their standard closed forms and left
  * to the verifier to confirm. Only the a² > 0 cases are attempted; the rest
  * fall through to the other rules.
  */
@@ -1071,8 +1062,7 @@ function asSqrtQuadratic(e, v) {
   return { A: A.v, C: C.v, power };
 }
 
-// ── rule 9: trigonometric powers ────────────────────────────────────────────
-
+//  rule 9: trigonometric powers  ........................................
 /**
  * ∫sinᵐx·cosⁿx dx by the classical case split. An odd power of either function
  * peels off one factor to be the differential of the other, which is a
@@ -1129,8 +1119,7 @@ function trigPowers(e, v) {
   return { m, n, ok: true };
 }
 
-// ── rule order ──────────────────────────────────────────────────────────────
-
+//  rule order  ..........................................................
 const RULES = [
   { name: 'constant', fn: ruleConstant },
   { name: 'power rule', fn: rulePower },
@@ -1147,12 +1136,11 @@ const RULES = [
   { name: 'integration by parts', fn: rulePartsRule },
 ];
 
-// ── definite integrals ──────────────────────────────────────────────────────
-
+//  definite integrals  ..................................................
 /**
  * Evaluate F(b) − F(a) exactly, when an antiderivative was found.
  *
- * This is only valid when F is continuous on [a, b] — the fundamental theorem
+ * This is only valid when F is continuous on [a, b]: the fundamental theorem
  * says so, and ∫₋₁¹ dx/x² is the standard counterexample where ignoring the
  * condition produces −2 for the integral of a positive function. The check
  * below samples F′ for a pole inside the interval and refuses the exact
@@ -1203,7 +1191,7 @@ export function definite(f, a, b, v = X) {
 /**
  * Look for a pole of the integrand strictly inside (a, b).
  *
- * Sampling, so it can miss one — a numerical search cannot prove continuity.
+ * Sampling, so it can miss one, a numerical search cannot prove continuity.
  * It is used only to *reject* an exact evaluation, never to bless one, so a
  * miss costs an over-confident answer in a rare case while a hit prevents a
  * wrong one in a common case.

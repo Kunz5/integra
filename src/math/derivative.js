@@ -1,16 +1,17 @@
-/**
- * derivative.js — exact symbolic differentiation.
- *
- * Differentiation is the easy direction. Every elementary function has a
- * derivative that is elementary, the rules compose mechanically, and there is
- * no search: the algorithm is a recursive descent that always terminates with
- * an answer.
- *
- * Integration is not like that at all, which is why this file is a hundred
- * lines and `integrate.js` is a thousand. It is also why this file is the
- * *referee* for that one: an antiderivative can be found by any heuristic you
- * like, as long as differentiating it gets you back to where you started.
- */
+/*
+  derivative.js: exact symbolic differentiation.
+  ..................................................
+
+  Differentiation is the easy direction. Every elementary function has a
+  derivative that is elementary, the rules compose mechanically, and there is
+  no search: the algorithm is a recursive descent that always terminates with
+  an answer.
+
+  Integration is not like that at all, which is why this file is a hundred
+  lines and `integrate.js` is a thousand. It is also why this file is the
+  *referee* for that one: an antiderivative can be found by any heuristic you
+  like, as long as differentiating it gets you back to where you started.
+*/
 
 import {
   NUM, ZERO, ONE, add, mul, pow, call, neg, div, sub, CONST,
@@ -51,7 +52,7 @@ function d(n, v) {
     case 'call': return dCall(n, v);
 
     case 'piece':
-      // The derivative of a piecewise function is piecewise — and is undefined
+      // The derivative of a piecewise function is piecewise, and is undefined
       // at the joins unless the pieces meet smoothly. This reports the pieces
       // and stays silent about the joins rather than inventing a value there.
       return {

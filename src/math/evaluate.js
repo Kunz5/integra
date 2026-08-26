@@ -1,24 +1,24 @@
-/**
- * evaluate.js — expression tree to a fast numeric closure.
- *
- * Quadrature calls f tens of thousands of times per run and Monte Carlo calls
- * it millions, so walking the tree per sample is not good enough. `compile`
- * emits JavaScript source from the *tree* — never from the user's string — and
- * builds one function from it. The distinction matters: the generated text is
- * assembled from node kinds and numeric literals that this module controls, so
- * nothing a user types reaches the compiler as code.
- *
- * The compiled function is also where domain trouble surfaces. Real analysis
- * has holes in it — ln of a negative, √ of a negative, 1/0, tan at π/2 — and
- * every one of those is a place a numerical integrator can silently produce a
- * beautiful wrong answer. The convention here is that such points evaluate to
- * NaN, and every consumer treats NaN as "no value here", not as zero.
- */
+/*
+  evaluate.js: expression tree to a fast numeric closure.
+  ...........................................................
+
+  Quadrature calls f tens of thousands of times per run and Monte Carlo calls
+  it millions, so walking the tree per sample is not good enough. `compile`
+  emits JavaScript source from the *tree* — never from the user's string: and
+  builds one function from it. The distinction matters: the generated text is
+  assembled from node kinds and numeric literals that this module controls, so
+  nothing a user types reaches the compiler as code.
+
+  The compiled function is also where domain trouble surfaces. Real analysis
+  has holes in it — ln of a negative, √ of a negative, 1/0, tan at π/2: and
+  every one of those is a place a numerical integrator can silently produce a
+  beautiful wrong answer. The convention here is that such points evaluate to
+  NaN, and every consumer treats NaN as "no value here", not as zero.
+*/
 
 import { CONST_VALUES } from './ast.js';
 
-// ── the runtime the compiled code is closed over ────────────────────────────
-
+//  the runtime the compiled code is closed over  ........................
 /** Lanczos approximation to the gamma function, g = 7, n = 9. */
 const LANCZOS = [
   0.99999999999980993, 676.5203681218851, -1259.1392167224028,
@@ -36,7 +36,7 @@ function gamma(z) {
 }
 
 /**
- * Error function, Abramowitz & Stegun 7.1.26 — about 1.5e-7 absolute.
+ * Error function, Abramowitz & Stegun 7.1.26: about 1.5e-7 absolute.
  *
  * Good enough to *draw*, not good enough to be an answer. This is why the
  * Gaussian integral example is checked against a numerical quadrature rather
@@ -71,8 +71,7 @@ const RUNTIME = {
 
 const RUNTIME_NAMES = Object.keys(RUNTIME);
 
-// ── code generation ─────────────────────────────────────────────────────────
-
+//  code generation  .....................................................
 function emit(node, vars) {
   switch (node.k) {
     case 'num': return literal(node.v);
@@ -147,7 +146,7 @@ export function compile(ast, vars = ['x']) {
  * Every numerical routine in INTEGRA is written against this contract: a sample
  * is either a finite number or it is absent. Letting an Infinity through would
  * poison a whole Riemann sum with one endpoint, and turning it into 0 would be
- * a fabricated value — which is worse, because the answer would look fine.
+ * a fabricated value, which is worse, because the answer would look fine.
  */
 export function compileSafe(ast, vars = ['x']) {
   const raw = compile(ast, vars);

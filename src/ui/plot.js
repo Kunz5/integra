@@ -1,75 +1,81 @@
-/**
- * plot.js — the graph engine.
- *
- * A canvas plotter built for mathematical functions rather than for data: it
- * knows about asymptotes, about the difference between a gap in the domain and
- * a vertical jump, about drawing an area that is signed, and about the fact
- * that a curve should be sampled where it is interesting rather than uniformly.
- *
- * Three decisions worth naming, because each is a place where a naïve plotter
- * draws something false:
- *
- *   · Poles are broken, not bridged. Plotting tan x by joining consecutive
- *     samples draws a near-vertical line through the asymptote — a line that
- *     is not part of the graph. The path is cut wherever the function leaves
- *     the viewport or stops being finite.
- *
- *   · Sampling is adaptive. A uniform grid at one sample per pixel misses a
- *     spike narrower than a pixel entirely: the curve is drawn smooth and flat
- *     straight through a feature that carries all of the area. Segments are
- *     subdivided where the curve bends.
- *
- *   · Everything is drawn at device resolution. A canvas scaled by CSS rather
- *     than by its backing store is soft on every display made in the last
- *     decade, and soft axes look like a mistake because they are one.
- */
+/*
+  plot.js: the graph engine.
+  ..............................
+
+  A canvas plotter built for mathematical functions rather than for data: it
+  knows about asymptotes, about the difference between a gap in the domain and
+  a vertical jump, about drawing an area that is signed, and about the fact
+  that a curve should be sampled where it is interesting rather than uniformly.
+
+  Three decisions worth naming, because each is a place where a naïve plotter
+  draws something false:
+
+    · Poles are broken, not bridged. Plotting tan x by joining consecutive
+      samples draws a near-vertical line through the asymptote; a line that
+      is not part of the graph. The path is cut wherever the function leaves
+      the viewport or stops being finite.
+
+    · Sampling is adaptive. A uniform grid at one sample per pixel misses a
+      spike narrower than a pixel entirely: the curve is drawn smooth and flat
+      straight through a feature that carries all of the area. Segments are
+      subdivided where the curve bends.
+
+    · Everything is drawn at device resolution. A canvas scaled by CSS rather
+      than by its backing store is soft on every display made in the last
+      decade, and soft axes look like a mistake because they are one.
+*/
 
 export const THEMES = {
-  dark: {
-    background: '#0a0d13',
-    panel: '#0e1219',
-    grid: '#161c28',
-    gridMajor: '#222b3d',
-    axis: '#6b7789',
-    axisLine: '#3d4759',
-    text: '#e8edf5',
-    textDim: '#7f8ca3',
-    curve: '#5eb0ff',
-    curveAlt: '#ffb454',
-    area: 'rgba(94, 176, 255, 0.20)',
-    areaNegative: 'rgba(255, 110, 110, 0.20)',
-    strip: 'rgba(94, 176, 255, 0.28)',
-    stripEdge: 'rgba(150, 200, 255, 0.85)',
-    stripNegative: 'rgba(255, 110, 110, 0.26)',
-    stripNegativeEdge: 'rgba(255, 150, 150, 0.85)',
-    marker: '#ffd166',
-    cursor: '#8b9bb4',
-    accent: '#5eb0ff',
-    hit: '#4ade80',
-    miss: '#f87171',
+  /*
+    Plate colours, chosen the way a printed figure is: an ink-on-cream ground,
+    hairline rules, and a series palette that stays distinguishable when the
+    page is photocopied. No pure saturated screen colours anywhere.
+  */
+  day: {
+    background: '#faf7f0',
+    panel: '#fffdf7',
+    grid: '#ece5d6',
+    gridMajor: '#dcd2bd',
+    axis: '#7d7263',
+    axisLine: '#8a7f6d',
+    text: '#1c1913',
+    textDim: '#7d7263',
+    curve: '#7c2d16',
+    curveAlt: '#2b5741',
+    area: 'rgba(124, 45, 22, 0.13)',
+    areaNegative: 'rgba(70, 82, 120, 0.15)',
+    strip: 'rgba(124, 45, 22, 0.14)',
+    stripEdge: 'rgba(124, 45, 22, 0.55)',
+    stripNegative: 'rgba(70, 82, 120, 0.16)',
+    stripNegativeEdge: 'rgba(70, 82, 120, 0.6)',
+    marker: '#8a6314',
+    cursor: '#9a8f7c',
+    accent: '#7c2d16',
+    hit: '#2b5741',
+    miss: '#b8a68a',
   },
-  light: {
-    background: '#ffffff',
-    panel: '#f7f9fc',
-    grid: '#eef2f7',
-    gridMajor: '#dde5ef',
-    axis: '#8a97ab',
-    axisLine: '#aab6c6',
-    text: '#141a24',
-    textDim: '#5d6a7d',
-    curve: '#1668c6',
-    curveAlt: '#c2670a',
-    area: 'rgba(22, 104, 198, 0.16)',
-    areaNegative: 'rgba(200, 40, 40, 0.16)',
-    strip: 'rgba(22, 104, 198, 0.22)',
-    stripEdge: 'rgba(22, 104, 198, 0.8)',
-    stripNegative: 'rgba(200, 40, 40, 0.20)',
-    stripNegativeEdge: 'rgba(200, 40, 40, 0.8)',
-    marker: '#b45309',
-    cursor: '#7b8798',
-    accent: '#1668c6',
-    hit: '#15803d',
-    miss: '#b91c1c',
+  night: {
+    background: '#16140f',
+    panel: '#1c1a14',
+    grid: '#2a2620',
+    gridMajor: '#3d382d',
+    axis: '#857b6b',
+    axisLine: '#5c5445',
+    text: '#ece5d6',
+    textDim: '#857b6b',
+    curve: '#d98a68',
+    curveAlt: '#7fbc9c',
+    area: 'rgba(217, 138, 104, 0.16)',
+    areaNegative: 'rgba(140, 158, 200, 0.16)',
+    strip: 'rgba(217, 138, 104, 0.18)',
+    stripEdge: 'rgba(217, 138, 104, 0.6)',
+    stripNegative: 'rgba(140, 158, 200, 0.18)',
+    stripNegativeEdge: 'rgba(140, 158, 200, 0.62)',
+    marker: '#d9b160',
+    cursor: '#6f6555',
+    accent: '#d98a68',
+    hit: '#7fbc9c',
+    miss: '#5c5445',
   },
 };
 
@@ -80,7 +86,7 @@ export class Plot {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.opts = options;
-    this.theme = THEMES.dark;
+    this.theme = THEMES.day;
     this.view = null;                 // { x0, x1, y0, y1 }, null = auto
     this.layers = [];
     this.hover = null;
@@ -90,7 +96,7 @@ export class Plot {
     this.resize();
   }
 
-  setTheme(name) { this.theme = THEMES[name] ?? THEMES.dark; return this; }
+  setTheme(name) { this.theme = THEMES[name] ?? THEMES.day; return this; }
 
   resize() {
     const dpr = window.devicePixelRatio || 1;
@@ -198,7 +204,7 @@ export class Plot {
   drawGrid(b, a) {
     const { ctx, theme } = this;
     ctx.save();
-    ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.font = '11px "Iowan Old Style", Palatino, Georgia, serif';
     ctx.lineWidth = 1;
 
     for (const t of niceTicks(b.x0, b.x1, Math.max(3, Math.round(a.w / 90)))) {
@@ -287,7 +293,7 @@ export class Plot {
    * The region between the curve and the axis, coloured by sign.
    *
    * An integral is a *signed* area, and a plot that shades everything the same
-   * colour hides the single most common source of surprise — that ∫sin over a
+   * colour hides the single most common source of surprise: that ∫sin over a
    * full period is zero because the two halves cancel. Positive and negative
    * parts are shaded separately, so the cancellation is visible.
    */
@@ -418,7 +424,7 @@ export class Plot {
     ctx.restore();
   }
 
-  /** Shaded horizontal band — used for a Monte Carlo confidence interval. */
+  /** Shaded horizontal band; used for a Monte Carlo confidence interval. */
   drawBands(layer, b, a) {
     const { ctx } = this;
     ctx.save();
@@ -448,7 +454,7 @@ export class Plot {
     }
 
     if (label) {
-      ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.font = '11px "Iowan Old Style", Palatino, Georgia, serif';
       const w = ctx.measureText(label).width + 14;
       const bx = Math.min(Math.max(a.x + 2, X - w / 2), a.x + a.w - w - 2);
       ctx.fillStyle = theme.panel;
@@ -463,11 +469,10 @@ export class Plot {
   }
 }
 
-// ── log-scale plot, for convergence ─────────────────────────────────────────
-
+//  log-scale plot, for convergence  .....................................
 /**
  * A log-log plot. Convergence is a power law, and a power law is a straight
- * line on log-log axes — which is the entire reason error-versus-N is never
+ * line on log-log axes, which is the entire reason error-versus-N is never
  * plotted any other way. The slope you read off *is* the order of the method.
  */
 export class LogLogPlot extends Plot {
@@ -503,7 +508,7 @@ export class LogLogPlot extends Plot {
   drawGrid(b, a) {
     const { ctx, theme } = this;
     ctx.save();
-    ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.font = '11px "Iowan Old Style", Palatino, Georgia, serif';
     ctx.lineWidth = 1;
 
     for (const t of decades(b.x0, b.x1)) {
@@ -538,8 +543,7 @@ export class LogLogPlot extends Plot {
   }
 }
 
-// ── helpers ─────────────────────────────────────────────────────────────────
-
+//  helpers  .............................................................
 /** 1-2-5 tick positions across a range. */
 export function niceTicks(lo, hi, target = 6) {
   if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return [lo];

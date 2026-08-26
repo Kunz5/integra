@@ -1,19 +1,20 @@
-/**
- * notation.js — expression tree to mathematical notation.
- *
- * Two renderers over the same tree: MathML for display, and a plain linear
- * string for input boxes, tooltips and export.
- *
- * MathML rather than a typesetting library, because it is what browsers
- * actually implement — real fractions with real rules, real radicals, integral
- * signs that stretch, proper spacing around operators — and it costs nothing to
- * ship. A rendering library would be the largest dependency in the project by
- * an order of magnitude, to produce something the browser can already do.
- *
- * The renderer works from the same tree the engine computes with. There is no
- * second, prettier description of the expression that could drift out of step
- * with the one being integrated: what you read is what was solved.
- */
+/*
+  notation.js: expression tree to mathematical notation.
+  ..........................................................
+
+  Two renderers over the same tree: MathML for display, and a plain linear
+  string for input boxes, tooltips and export.
+
+  MathML rather than a typesetting library, because it is what browsers
+  actually implement, real fractions with real rules, real radicals, integral
+  signs that stretch, proper spacing around operators, and it costs nothing to
+  ship. A rendering library would be the largest dependency in the project by
+  an order of magnitude, to produce something the browser can already do.
+
+  The renderer works from the same tree the engine computes with. There is no
+  second, prettier description of the expression that could drift out of step
+  with the one being integrated: what you read is what was solved.
+*/
 
 import { numericValue } from '../math/ast.js';
 
@@ -49,7 +50,7 @@ const INVERSE = new Set(['asin', 'acos', 'atan', 'asinh', 'acosh', 'atanh']);
 /**
  * Format a number for display.
  *
- * Recognises the small rationals — 0.3333333333333333 prints as ⅓ rather than
+ * Recognises the small rationals: 0.3333333333333333 prints as ⅓ rather than
  * as a wall of threes — because those are what integration constants actually
  * are, and a reader who sees 0.16666666666666666 has to decode it before they
  * can read the formula.
@@ -88,8 +89,7 @@ export function smallFraction(v, maxDen = 64) {
 }
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 
-// ── precedence, for deciding where brackets are actually needed ─────────────
-
+//  precedence, for deciding where brackets are actually needed  .........
 const PREC = { add: 1, mul: 2, div: 2, pow: 4, atom: 5 };
 
 function precedence(n) {
@@ -103,8 +103,7 @@ function precedence(n) {
 
 const bracket = (inner) => mrow(mo('(', { stretchy: 'true' }), inner, mo(')', { stretchy: 'true' }));
 
-// ── the renderer ────────────────────────────────────────────────────────────
-
+//  the renderer  ........................................................
 /**
  * Render an expression as a MathML fragment.
  *
@@ -293,8 +292,7 @@ function renderPiecewise(n) {
   return mrow(mo('{', { stretchy: 'true' }), el('mtable', { columnalign: 'left left' }, ...rows));
 }
 
-// ── whole-integral notation ─────────────────────────────────────────────────
-
+//  whole-integral notation  .............................................
 /** ∫ f(x) dx, indefinite. */
 export function indefiniteIntegralML(f, v = 'x') {
   return mathBlock(mrow(
@@ -321,8 +319,7 @@ export function definiteIntegralML(f, a, b, v = 'x') {
   ), { display: true });
 }
 
-// ── linear text ─────────────────────────────────────────────────────────────
-
+//  linear text  .........................................................
 /** A plain string, re-parseable by the parser it came from. */
 export function toText(n, minPrec = 0) {
   const s = text(n);

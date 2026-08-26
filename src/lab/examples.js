@@ -1,17 +1,18 @@
-/**
- * examples.js — the built-in collection.
- *
- * These are not a menu of what INTEGRA can do; any expression the parser
- * accepts works. They are chosen because each one *demonstrates something*:
- * a rule that succeeds, a rule that fails, a theorem's hypothesis being
- * violated, a method's advantage showing up. The `why` on each is the reason
- * it is in the list.
- */
+/*
+  examples.js: the built-in collection.
+  .........................................
+
+  These are not a menu of what INTEGRA can do; any expression the parser
+  accepts works. They are chosen because each one *demonstrates something*:
+  a rule that succeeds, a rule that fails, a theorem's hypothesis being
+  violated, a method's advantage showing up. The `why` on each is the reason
+  it is in the list.
+*/
 
 export const GROUPS = [
   {
     name: 'The basics',
-    blurb: 'Integrals with clean closed forms, where the numerical methods should — and do — reach machine precision.',
+    blurb: 'Integrals with clean closed forms, where the numerical methods should — and do, reach machine precision.',
     items: [
       { f: 'x^2', a: '0', b: '1', why: 'The first integral anyone computes. Exactly 1/3, and every method here gets all sixteen digits.' },
       { f: 'sin(x)', a: '0', b: 'pi', why: 'Exactly 2. Smooth and periodic, which is the best case a quadrature rule ever sees.' },
@@ -22,7 +23,7 @@ export const GROUPS = [
   },
   {
     name: 'Where the symbolic engine stops',
-    blurb: 'Perfectly ordinary functions with no elementary antiderivative. Not a limitation of this program — a theorem about the functions.',
+    blurb: 'Perfectly ordinary functions with no elementary antiderivative. Not a limitation of this program, a theorem about the functions.',
     items: [
       { f: 'e^(-x^2)', a: '-2', b: '2', why: 'The Gaussian. Liouville proved no elementary antiderivative exists; the error function was invented to name it.' },
       { f: 'sin(x)/x', a: '0', b: '10', why: 'The sinc function. No elementary antiderivative either — its integral is called Si(x) because it needed a name.' },

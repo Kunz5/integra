@@ -1,23 +1,24 @@
-/**
- * convergence.js — measuring how fast a method actually converges.
- *
- * Every rule in the library carries a theoretical order: the trapezoidal rule
- * is O(h²), Simpson's is O(h⁴). Those are theorems, and they come with
- * hypotheses — Simpson's h⁴ requires f to have a bounded fourth derivative on
- * the whole interval. The interesting question is not what the theorem says but
- * whether the hypothesis holds for *this* integrand, and the way to find out is
- * to measure.
- *
- * The measurement is a straight line. If E(N) ≈ C·N^(−p) then
- *
- *     log E = log C − p·log N
- *
- * so plotting error against N on log-log axes turns the convergence rate into a
- * slope, and reading that slope off is a linear regression. Everything below is
- * that idea, plus the care needed to avoid the two ways it lies: fitting the
- * flat floor where round-off has taken over, and fitting a single pair of
- * points and calling it a rate.
- */
+/*
+  convergence.js: measuring how fast a method actually converges.
+  ..................................................................
+
+  Every rule in the library carries a theoretical order: the trapezoidal rule
+  is O(h²), Simpson's is O(h⁴). Those are theorems, and they come with
+  hypotheses; Simpson's h⁴ requires f to have a bounded fourth derivative on
+  the whole interval. The interesting question is not what the theorem says but
+  whether the hypothesis holds for *this* integrand, and the way to find out is
+  to measure.
+
+  The measurement is a straight line. If E(N) ≈ C·N^(−p) then
+
+      log E = log C − p·log N
+
+  so plotting error against N on log-log axes turns the convergence rate into a
+  slope, and reading that slope off is a linear regression. Everything below is
+  that idea, plus the care needed to avoid the two ways it lies: fitting the
+  flat floor where round-off has taken over, and fitting a single pair of
+  points and calling it a rate.
+*/
 
 import { FIXED_METHODS } from '../numeric/quadrature.js';
 import { ADAPTIVE_METHODS, tanhSinh, gauss } from '../numeric/advanced.js';
@@ -30,7 +31,7 @@ import { finiteIntegral } from '../numeric/improper.js';
  * the errors being measured, or the measurement is of the reference's error and
  * not the method's. An exact symbolic value is used when there is one; failing
  * that, tanh-sinh at full tolerance, cross-checked against high-order Gauss.
- * When the two disagree, that is reported rather than papered over — an
+ * When the two disagree, that is reported rather than papered over, an
  * unreliable reference makes every error in the table meaningless, and the user
  * needs to know.
  */
@@ -97,7 +98,7 @@ export function defaultNs(max = 4096) {
  * Fit E ≈ C·N^(−p) and return p, by least squares on the logarithms.
  *
  * The subtlety that makes or breaks this: **round-off sets a floor**. Once the
- * error reaches about 10⁻¹⁶ relative, refining further does not reduce it — it
+ * error reaches about 10⁻¹⁶ relative, refining further does not reduce it: it
  * increases it, because a finer grid means more terms in the sum and more
  * accumulated rounding. Fitting a line through that flat or rising tail returns
  * a slope near zero and reports that Simpson's rule is first-order, which is
@@ -188,7 +189,7 @@ export function interpretOrder(measured, theoretical, methodLabel, r2) {
   if (Math.abs(gap) < 0.25) {
     // Deliberately not "the integrand is smooth". A first-order rule matches its
     // predicted rate on √x too, because its error bound is the one that survives
-    // an integrable singularity — matching does not certify the hypothesis, it
+    // an integrable singularity, matching does not certify the hypothesis, it
     // only says this rule is achieving what it claims here.
     return `The measured rate of ${measured.toFixed(2)} matches the ${theoretical} that the error analysis predicts for `
       + `${methodLabel}. Whatever this integrand does, it is not costing this rule any of its nominal order.`;
@@ -201,7 +202,7 @@ export function interpretOrder(measured, theoretical, methodLabel, r2) {
   }
   return `The measured rate of ${measured.toFixed(2)} is *above* the predicted ${theoretical}, which happens for real `
     + `reasons rather than by luck: a periodic integrand over a whole number of periods makes the Euler-Maclaurin `
-    + `error terms cancel, and a symmetric one can make the leading term vanish. Superconvergence like this is fragile — `
+    + `error terms cancel, and a symmetric one can make the leading term vanish. Superconvergence like this is fragile; `
     + `it usually disappears the moment the interval or the function is perturbed.`;
 }
 

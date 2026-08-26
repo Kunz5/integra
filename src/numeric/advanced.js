@@ -1,22 +1,22 @@
-/**
- * advanced.js — the methods that decide for themselves.
- *
- * The rules in `quadrature.js` all sample on a grid you choose in advance. The
- * four here choose instead:
- *
- *   Gauss-Legendre    optimal node placement — 2n−1 degree exactness from n points
- *   adaptive Simpson  subdivide only where the error estimate says to
- *   Romberg           extrapolate the trapezoidal rule's error away
- *   tanh-sinh         a change of variable that crushes endpoint singularities
- *
- * All four are implemented from their definitions. The Gauss-Legendre nodes in
- * particular are *computed*, by Newton's method on the Legendre polynomials,
- * not copied from a table — which is the difference between a program that has
- * the numbers and one that knows where they come from.
- */
+/*
+  advanced.js: the methods that decide for themselves.
+  ........................................................
 
-// ── Gauss-Legendre ──────────────────────────────────────────────────────────
+  The rules in `quadrature.js` all sample on a grid you choose in advance. The
+  four here choose instead:
 
+    Gauss-Legendre    optimal node placement — 2n−1 degree exactness from n points
+    adaptive Simpson  subdivide only where the error estimate says to
+    Romberg           extrapolate the trapezoidal rule's error away
+    tanh-sinh         a change of variable that crushes endpoint singularities
+
+  All four are implemented from their definitions. The Gauss-Legendre nodes in
+  particular are *computed*, by Newton's method on the Legendre polynomials,
+  not copied from a table, which is the difference between a program that has
+  the numbers and one that knows where they come from.
+*/
+
+//  Gauss-Legendre  ......................................................
 const legendreCache = new Map();
 
 /**
@@ -34,7 +34,7 @@ const legendreCache = new Map();
  *
  * Why this is worth the trouble: n samples placed *here* integrate every
  * polynomial up to degree 2n−1 exactly. Ten function evaluations give what the
- * trapezoidal rule would need tens of thousands for — on a smooth integrand.
+ * trapezoidal rule would need tens of thousands for; on a smooth integrand.
  * On a kinked or oscillatory one, that advantage evaporates, which is what the
  * pathological lab is for.
  */
@@ -92,8 +92,7 @@ export function gauss(f, a, b, n = 10) {
   return { value: sum * half, evaluations, skipped, points: nodes.length };
 }
 
-// ── adaptive Simpson ────────────────────────────────────────────────────────
-
+//  adaptive Simpson  ....................................................
 /**
  * Adaptive Simpson with Richardson error control.
  *
@@ -101,7 +100,7 @@ export function gauss(f, a, b, n = 10) {
  * estimates on the two halves. For a fourth-order rule the difference between
  * them is about 15 times the error in the finer one, so |S₂ − S₁|/15 is an
  * error estimate that costs nothing beyond the samples already taken. If it is
- * within the local tolerance, accept S₂ plus that correction — which is a free
+ * within the local tolerance, accept S₂ plus that correction, which is a free
  * upgrade to sixth order. Otherwise split and recurse on each half with half
  * the tolerance.
  *
@@ -129,7 +128,7 @@ export function adaptiveSimpson(f, a, b, tolerance = 1e-10, maxDepth = 50, maxEv
   const recurse = (x0, x2, y0, y1, y2, whole, tol, depth) => {
     // An adaptive method without a budget is unbounded. Handed sin(x)/x over
     // [10⁷, 10⁸] it will try to resolve sixteen million oscillations, and the
-    // recursion consumes the machine before the depth cap ever bites — depth 50
+    // recursion consumes the machine before the depth cap ever bites; depth 50
     // permits 2⁵⁰ intervals. Stopping at a stated number of evaluations and
     // saying so is the only safe behaviour; silently grinding is not.
     if (evaluations > maxEvaluations) {
@@ -197,7 +196,7 @@ export function adaptiveSimpson(f, a, b, tolerance = 1e-10, maxDepth = 50, maxEv
     nanSeen,
     reason: budgetExceeded
       ? `The subdivision reached its budget of ${maxEvaluations} evaluations without meeting the tolerance. `
-        + 'The value returned is the best estimate at that point and its accuracy is unknown — this happens when the '
+        + 'The value returned is the best estimate at that point and its accuracy is unknown; this happens when the '
         + 'integrand has more structure than any finite number of samples can resolve.'
       : nanSeen
         ? 'Some interior samples had no finite value and were left out of the sum. Treat this result with suspicion.'
@@ -206,13 +205,12 @@ export function adaptiveSimpson(f, a, b, tolerance = 1e-10, maxDepth = 50, maxEv
   };
 }
 
-// ── Romberg ─────────────────────────────────────────────────────────────────
-
+//  Romberg  .............................................................
 /**
  * Romberg integration: Richardson extrapolation applied to the trapezoidal rule.
  *
  * The trapezoidal rule's error has an expansion in even powers of h — the
- * Euler-Maclaurin formula — so it is c₂h² + c₄h⁴ + c₆h⁶ + …  Compute T(h) and
+ * Euler-Maclaurin formula: so it is c₂h² + c₄h⁴ + c₆h⁶ + …  Compute T(h) and
  * T(h/2), and the combination (4T(h/2) − T(h))/3 kills the h² term exactly.
  * That result has an h⁴ error; do it again to kill that, and again. Each column
  * of the table gains two orders, and column k is a rule of order 2k+2.
@@ -223,7 +221,7 @@ export function adaptiveSimpson(f, a, b, tolerance = 1e-10, maxDepth = 50, maxEv
  *
  * On a smooth periodic function this converges spectacularly. On one with a
  * singularity at an endpoint the Euler-Maclaurin expansion does not hold and
- * the extrapolation is meaningless — the table stops improving and the returned
+ * the extrapolation is meaningless: the table stops improving and the returned
  * error estimate says so.
  */
 export function romberg(f, a, b, maxLevels = 16, tolerance = 1e-13) {
@@ -269,10 +267,9 @@ export function romberg(f, a, b, maxLevels = 16, tolerance = 1e-13) {
   };
 }
 
-// ── tanh-sinh (double exponential) ──────────────────────────────────────────
-
+//  tanh-sinh (double exponential)  ......................................
 /**
- * Tanh-sinh quadrature — the right tool for an endpoint singularity.
+ * Tanh-sinh quadrature: the right tool for an endpoint singularity.
  *
  * Substitute x = tanh(½π·sinh t). As t runs over the whole real line, x sweeps
  * (−1, 1), and the Jacobian decays *doubly* exponentially at both ends. Two
@@ -281,8 +278,8 @@ export function romberg(f, a, b, maxLevels = 16, tolerance = 1e-13) {
  * that the plain trapezoidal rule on a uniform t-grid converges at a rate no
  * polynomial rule reaches.
  *
- * This is how ∫₀¹ dx/√x — where Simpson's rule flounders because the fourth
- * derivative is unbounded — gets fifteen correct digits from a few hundred
+ * This is how ∫₀¹ dx/√x, where Simpson's rule flounders because the fourth
+ * derivative is unbounded, gets fifteen correct digits from a few hundred
  * evaluations.
  */
 export function tanhSinh(f, a, b, tolerance = 1e-13, maxLevel = 14) {
@@ -297,7 +294,7 @@ export function tanhSinh(f, a, b, tolerance = 1e-13, maxLevel = 14) {
    *
    * The subtlety that decides whether this method is worth anything: the node
    * nearest an endpoint is at 1 − x ≈ 10⁻¹⁶, and computing it as `c + half·x`
-   * rounds it *onto* the endpoint — straight into the singularity the whole
+   * rounds it *onto* the endpoint: straight into the singularity the whole
    * transformation exists to avoid. So the distance from the endpoint is
    * carried directly, as 1 − tanh u = 2/(1 + e^{2u}), which stays exact all the
    * way down to underflow, and the two mirrored points are evaluated from their
@@ -353,12 +350,11 @@ export function tanhSinh(f, a, b, tolerance = 1e-13, maxLevel = 14) {
   return { value: prev, evaluations, levels: maxLevel + 1, converged: false, estimatedError: NaN };
 }
 
-// ── registry ────────────────────────────────────────────────────────────────
-
+//  registry  ............................................................
 export const ADAPTIVE_METHODS = {
   gauss: {
     label: 'Gauss-Legendre', run: (f, a, b, opt = {}) => gauss(f, a, b, opt.points ?? 20),
-    note: 'Nodes at the roots of the Legendre polynomial, computed here by Newton iteration. n points integrate degree 2n−1 exactly — the best any n-sample rule can do.',
+    note: 'Nodes at the roots of the Legendre polynomial, computed here by Newton iteration. n points integrate degree 2n−1 exactly, the best any n-sample rule can do.',
   },
   adaptive: {
     label: 'Adaptive Simpson', run: (f, a, b, opt = {}) => adaptiveSimpson(f, a, b, opt.tolerance ?? 1e-10),

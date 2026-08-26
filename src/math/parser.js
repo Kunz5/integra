@@ -1,25 +1,26 @@
-/**
- * parser.js — text to expression tree.
- *
- * A hand-written lexer and a Pratt (precedence-climbing) parser. Nothing here
- * goes near `eval`: what the user types is data, and the only thing built from
- * it is a tree of plain objects. That matters for safety — this is a page
- * anyone can paste a string into — and it matters mathematically, because an
- * expression you can only evaluate is an expression you cannot differentiate,
- * integrate, simplify or typeset.
- *
- * The grammar accepts the notation people actually write rather than a
- * programming language's:
- *
- *   2x            implicit multiplication
- *   3x^2          binds as 3·(x²), not (3x)²
- *   sin x         function application without brackets, tightest binding
- *   sin^2(x)      the trigonometric convention: (sin x)², not sin(sin x)
- *   e^-x^2        unary minus inside an exponent
- *   |x|           absolute value
- *   2^3^2         right-associative: 2^(3^2) = 512
- *   -x^2          -(x²), because unary minus binds looser than a power
- */
+/*
+  parser.js: text to expression tree.
+  .......................................
+
+  A hand-written lexer and a Pratt (precedence-climbing) parser. Nothing here
+  goes near `eval`: what the user types is data, and the only thing built from
+  it is a tree of plain objects. That matters for safety: this is a page
+  anyone can paste a string into — and it matters mathematically, because an
+  expression you can only evaluate is an expression you cannot differentiate,
+  integrate, simplify or typeset.
+
+  The grammar accepts the notation people actually write rather than a
+  programming language's:
+
+    2x            implicit multiplication
+    3x^2          binds as 3·(x²), not (3x)²
+    sin x         function application without brackets, tightest binding
+    sin^2(x)      the trigonometric convention: (sin x)², not sin(sin x)
+    e^-x^2        unary minus inside an exponent
+    |x|           absolute value
+    2^3^2         right-associative: 2^(3^2) = 512
+    -x^2          -(x²), because unary minus binds looser than a power
+*/
 
 import { NUM, VAR, CONST, add, mul, pow, call, neg, sub, div, CONST_VALUES } from './ast.js';
 
@@ -32,8 +33,7 @@ export class ParseError extends Error {
   }
 }
 
-// ── functions ───────────────────────────────────────────────────────────────
-
+//  functions  ...........................................................
 /** Arity 1 unless stated. `log` takes an optional base as a second argument. */
 export const FUNCTIONS = {
   sin: 1, cos: 1, tan: 1, sec: 1, csc: 1, cot: 1,
@@ -55,8 +55,7 @@ const ALIASES = {
 
 const CONSTANTS = new Set(Object.keys(CONST_VALUES));
 
-// ── lexer ───────────────────────────────────────────────────────────────────
-
+//  lexer  ...............................................................
 const NAME_START = /[A-Za-z_]/;
 const NAME_CHAR = /[A-Za-z0-9_]/;
 const DIGIT = /[0-9]/;
@@ -114,11 +113,10 @@ export function tokenize(src) {
   return out;
 }
 
-// ── parser ──────────────────────────────────────────────────────────────────
-
+//  parser  ..............................................................
 /**
  * Binding powers. Implicit multiplication sits at the same level as explicit
- * `*` and associates left to right, so `2x/3y` is `(2x/3)y` — the same reading
+ * `*` and associates left to right, so `2x/3y` is `(2x/3)y`; the same reading
  * a calculator or any CAS gives it. Raising implicit multiplication above
  * division would make `1/2x` mean `1/(2x)`, which is what some people write by
  * hand but is not what the notation says.
@@ -131,7 +129,7 @@ class Parser {
     this.i = 0;
     this.src = src;
     // How many |…| bars are currently open. Inside one, a `|` is the closing
-    // bar, not the start of another absolute value — without this, `|x|` reads
+    // bar, not the start of another absolute value; without this, `|x|` reads
     // the second bar as juxtaposition and runs off the end looking for an
     // operand. The ambiguity is real in the notation; nesting |…|…|| is not
     // something this parser tries to disambiguate, and neither does anyone.
@@ -184,7 +182,7 @@ class Parser {
       if (bp === undefined || bp <= minBp) break;
       this.next();
 
-      // `^` is right-associative — 2^3^2 is 2^(3^2) = 512, not 64 — and its
+      // `^` is right-associative: 2^3^2 is 2^(3^2) = 512, not 64 — and its
       // right operand takes a unary minus without brackets, so e^-x parses.
       const right = tok.value === '^' ? this.expression(bp - 1) : this.expression(bp);
 
@@ -285,7 +283,7 @@ class Parser {
     } else {
       // Bracket-free application takes exactly one juxtaposed group: `sin 2x`
       // is sin(2x) and `sin x + 1` is (sin x) + 1. Parsing the argument with a
-      // minimum binding power of BP['*'] does not work — implicit
+      // minimum binding power of BP['*'] does not work: implicit
       // multiplication sits *at* that level, so the loop stops before it and
       // `sin 2x` comes out as sin(2)·x. The argument is therefore parsed by its
       // own rule: a unary term, then any primaries juxtaposed onto it, and

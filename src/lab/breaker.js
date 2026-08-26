@@ -1,27 +1,28 @@
-/**
- * breaker.js — search a family of functions for the one that defeats a method.
- *
- * Every quadrature rule comes with an error bound, and every error bound has a
- * derivative in it. Simpson's is
- *
- *     |E| ≤ (b − a)h⁴/180 · max|f⁗(ξ)|
- *
- * which is not a promise of accuracy. It is a promise of accuracy *divided by
- * however large the fourth derivative gets*. The rule is only as good as that
- * factor is small, and the factor is a property of the integrand, not of the
- * rule.
- *
- * So the exercise is: hold the method and the budget fixed, walk a parameter
- * through a family of integrands, and find where the accuracy falls off a
- * cliff. The answer is never a surprise once you see it, and it is almost
- * always invisible until you do.
- *
- * Two rules about honesty here. The search reports the worst case it *found*,
- * which is the worst over the grid it examined and nothing more. And the
- * explanation for each family is a statement of known mathematics — the
- * relationship between the parameter and the derivative in the error bound —
- * not a conclusion drawn from the numbers on screen.
- */
+/*
+  breaker.js: search a family of functions for the one that defeats a method.
+  ..................................................................
+
+  Every quadrature rule comes with an error bound, and every error bound has a
+  derivative in it. Simpson's is
+
+      |E| ≤ (b − a)h⁴/180 · max|f⁗(ξ)|
+
+  which is not a promise of accuracy. It is a promise of accuracy *divided by
+  however large the fourth derivative gets*. The rule is only as good as that
+  factor is small, and the factor is a property of the integrand, not of the
+  rule.
+
+  So the exercise is: hold the method and the budget fixed, walk a parameter
+  through a family of integrands, and find where the accuracy falls off a
+  cliff. The answer is never a surprise once you see it, and it is almost
+  always invisible until you do.
+
+  Two rules about honesty here. The search reports the worst case it *found*,
+  which is the worst over the grid it examined and nothing more. And the
+  explanation for each family is a statement of known mathematics: the
+  relationship between the parameter and the derivative in the error bound;
+  not a conclusion drawn from the numbers on screen.
+*/
 
 import { FIXED_METHODS } from '../numeric/quadrature.js';
 import { ADAPTIVE_METHODS, gauss, tanhSinh } from '../numeric/advanced.js';
@@ -41,7 +42,7 @@ export const FAMILIES = {
     interval: [0, 1],
     why: 'Every derivative of sin(kx) carries another factor of k, so the fourth derivative in Simpson\'s error bound '
       + 'grows as k⁴. Doubling the frequency costs sixteen times the error at the same number of samples. The rule '
-      + 'has not stopped working — the quantity its bound depends on has grown.',
+      + 'has not stopped working, the quantity its bound depends on has grown.',
     watchFor: 'Accuracy collapses once there are fewer than a handful of sample points per oscillation. Below about '
       + 'two points per period the samples alias, and the estimate stops tracking the function at all.',
   },
@@ -57,7 +58,7 @@ export const FAMILIES = {
     why: 'A Lorentzian of width 1/k has derivatives that scale as k^n. As k grows, essentially all of the area sits in '
       + 'a sliver of width 1/k, and a uniform grid spends its entire budget sampling the flat parts either side of it.',
     watchFor: 'A fixed rule degrades steadily. Adaptive Simpson barely notices, because it puts its samples where the '
-      + 'error estimate tells it to — this is the clearest demonstration in the whole laboratory of what adaptivity buys.',
+      + 'error estimate tells it to: this is the clearest demonstration in the whole laboratory of what adaptivity buys.',
   },
 
   endpoint: {
@@ -69,7 +70,7 @@ export const FAMILIES = {
     parameter: 'p',
     interval: [0, 1],
     why: 'x^(−p) is integrable for p < 1, but its derivatives blow up at the origin for any p > 0. The error bounds for '
-      + 'every polynomial rule involve those derivatives, so they are all vacuous here — the bound is infinite and says '
+      + 'every polynomial rule involve those derivatives, so they are all vacuous here; the bound is infinite and says '
       + 'nothing. The observed rate falls to 1 − p regardless of how high-order the rule claims to be.',
     watchFor: 'Every fixed rule and adaptive Simpson degrade together as p approaches 1. Tanh-sinh does not degrade at '
       + 'all, because it never evaluates the endpoint.',
@@ -90,7 +91,7 @@ export const FAMILIES = {
       + 'it exactly and the rule is exact; when it falls in the interior of a panel, the interpolant cannot represent '
       + 'the corner and the error is first-order there. The result depends on where the kink lands relative to the grid, '
       + 'which is a property of the arithmetic and not of the mathematics.',
-    watchFor: 'The error is a sawtooth in c, not a smooth curve — near-zero at kinks that land on grid points, and '
+    watchFor: 'The error is a sawtooth in c, not a smooth curve; near-zero at kinks that land on grid points, and '
       + 'orders of magnitude worse a hair either side. This is the single least intuitive plot in the laboratory.',
   },
 
@@ -211,7 +212,7 @@ function referenceValue(f, a, b) {
 /**
  * Run a method at approximately a given number of function evaluations.
  *
- * Each rule spends its budget differently — a closed rule uses N+1 samples for
+ * Each rule spends its budget differently; a closed rule uses N+1 samples for
  * N strips, Gauss uses exactly its point count, adaptive Simpson uses however
  * many it decides it needs. The budget is matched as closely as each rule
  * allows, and the actual count is returned so the comparison can be checked
